@@ -26,7 +26,7 @@
 
 ```bash
 # 1. Clone 到 Hermes 工作空间
-git clone <repo> ~/.hermes/job-hunter
+git clone https://github.com/comeonzhj/job-hunter.git ~/.hermes/job-hunter
 
 # 2. 告诉 Agent 完成配置
 #    在 Hermes 中发送：
