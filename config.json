@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "user": {
+    "name": "求职者",
+    "city": "上海",
+    "keywords": ["AI Agent", "大模型应用", "LLM Engineer"],
+    "welfare": ["双休", "五险一金"],
+    "salary_min": 25,
+    "salary_max": 50,
+    "experience": "3-5年",
+    "exclude_companies": [],
+    "exclude_keywords": ["外包", "驻场", "实习"],
+    "platform": "zhipin"
+  },
+  "schedule": {
+    "search_cron": "0 */4 * * *",
+    "feedback_check_cron": "0 */12 * * *",
+    "search_interval_hours": 4,
+    "feedback_timeout_hours": 72,
+    "reminder_after_hours": 48
+  },
+  "delivery": {
+    "feishu_chat_id": "",
+    "feishu_doc_folder": "",
+    "use_doc_report": true,
+    "use_message_alert": true
+  },
+  "boss_cli": {
+    "search_count": 30,
+    "detail_batch_size": 5,
+    "request_delay": 2
+  }
+}

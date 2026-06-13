@@ -1,0 +1,17 @@
+# Runtime data (generated at runtime, not source)
+workspace/events/
+workspace/.doc-state/
+workspace/.listener.pid
+workspace/event-listener.log
+workspace/reports/
+workspace/archives/
+workspace/preferences.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~

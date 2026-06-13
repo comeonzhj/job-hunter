@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "last_updated": "",
+  "signals_received": 0,
+  "learned_preferences": {},
+  "learned_exclusions": {},
+  "scoring_adjustments": {
+    "skill_weight": 0.30,
+    "salary_weight": 0.20,
+    "location_weight": 0.15,
+    "company_weight": 0.15,
+    "welfare_weight": 0.10,
+    "growth_weight": 0.10
+  }
+}
