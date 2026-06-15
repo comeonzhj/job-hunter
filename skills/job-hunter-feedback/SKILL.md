@@ -33,7 +33,7 @@ metadata:
 | ❌ 取消勾选 | 改变主意 | -2 | 记录 → 降低相似权重 |
 | 💬 "薪资低" | 明确拒绝 | -3 | 更新薪资下限 |
 | 💬 "技术不匹配" | 技能不匹配 | -2 | 更新技能权重 |
-| 💬 "已投"/"已面" | 已消费 | 0 | 标记 → 面试准备模式 |
+| 💬 "已投"/"已面" | 已消费 | 0 | 设置 `pipeline_status=applied` → 运行 `06-interview-prep.sh` |
 | 💬 正向评论 | 补充偏好 | +2 | 加入正向特征 |
 | ⏰ 48h 无操作 | 弱负 | -0.5 | 微调阈值 |
 | 📦 72h 归档 | 沉默信号 | -1 | 强化排除特征 |
@@ -85,6 +85,18 @@ CURRENT=$(cat "$PREF_FILE" 2>/dev/null || echo '{}')
 | `excluded_keywords` 新增 | 加入排除过滤 |
 | `salary_preference.min` 更新 | 调整薪资参数 |
 | 连续 3 批无高分岗位 | 降低阈值 / 扩大范围 |
+
+岗位状态发生变化后，必须运行：
+
+```bash
+bash $JOB_SCRIPTS/09-kanban-sync.sh
+```
+
+如果出现 `pipeline_status=applied` 的岗位，必须运行：
+
+```bash
+bash $JOB_SCRIPTS/06-interview-prep.sh
+```
 
 ## Step 5: 生成迭代报告
 

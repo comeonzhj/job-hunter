@@ -13,7 +13,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$SCRIPT_DIR/env.sh"
+if [ -n "${JOB_HOME:-}" ] && [ -f "$JOB_HOME/scripts/env.sh" ]; then
+  source "$JOB_HOME/scripts/env.sh"
+elif [ -f "$SCRIPT_DIR/env.sh" ]; then
+  source "$SCRIPT_DIR/env.sh"
+else
+  source "$HOME/.hermes/job-hunter/scripts/env.sh"
+fi
 
 log_event() {
   jq -cn \
@@ -97,10 +103,11 @@ if [ "$NEW_COUNT" -gt 0 ]; then
   INSTRUCTION+="请执行:\n"
   INSTRUCTION+="1. 读取配置: cat $JOB_CONFIG\n"
   INSTRUCTION+="2. 读取队列: cat $JOB_QUEUE\n"
-  INSTRUCTION+="3. 加载 skill: job-hunter-sop\n"
-  INSTRUCTION+="4. 加载 skill: job-hunter-delivery\n"
-  INSTRUCTION+="5. 对每个 pending 岗位执行 boss detail 获取详情\n"
-  INSTRUCTION+="6. 6 维度评分 → 生成报告 → 飞书文档交付\n\n"
+  INSTRUCTION+="3. 如配置了简历路径，读取简历作为筛选和简历优化参考\n"
+  INSTRUCTION+="4. 加载 skill: job-hunter-sop\n"
+  INSTRUCTION+="5. 加载 skill: job-hunter-delivery\n"
+  INSTRUCTION+="6. 对每个 pending 岗位执行 boss detail 获取详情\n"
+  INSTRUCTION+="7. 6 维度评分 → 生成报告 → 飞书文档交付\n\n"
 fi
 
 # 文档反馈

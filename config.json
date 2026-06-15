@@ -8,9 +8,15 @@
     "salary_min": 25,
     "salary_max": 50,
     "experience": "3-5年",
+    "resume": {
+      "path": "",
+      "summary": "",
+      "skills": [],
+      "target_roles": []
+    },
     "exclude_companies": [],
     "exclude_keywords": ["外包", "驻场", "实习"],
-    "platform": "zhipin"
+    "platform": "zhilian"
   },
   "schedule": {
     "search_cron": "0 */4 * * *",
@@ -22,6 +28,8 @@
   "delivery": {
     "feishu_chat_id": "",
     "feishu_doc_folder": "",
+    "feishu_base_app_token": "",
+    "feishu_base_table_id": "",
     "use_doc_report": true,
     "use_message_alert": true
   },

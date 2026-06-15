@@ -34,6 +34,9 @@
 | 用户偏好模型 | `$JOB_PREFERENCES` |
 | 事件队列 | `$JOB_EVENTS/` |
 | 审计日志 | `$JOB_AUDIT` |
+| 市场情报 | `$JOB_WORKSPACE/market-intel.json` |
+| 求职看板 | `$JOB_WORKSPACE/kanban.csv` |
+| 面试准备任务 | `$JOB_WORKSPACE/interview-prep-tasks.jsonl` |
 
 ## Agent 行为准则
 
@@ -42,6 +45,18 @@
 3. **读取偏好**: 每次评估前读取 preferences.json
 4. **审计追踪**: 关键动作写入 audit.jsonl
 5. **沉默保护**: 72h 无反馈 → 自动归档
+6. **简历优先**: 如果 `config.json` 中配置了简历路径或摘要，评估和面试准备必须读取
+7. **看板同步**: 每次岗位状态变化后运行 `09-kanban-sync.sh`
+
+## 长期记忆分层
+
+- `AGENT.md`：每个 session 都应先读的系统同频信息
+- `config.json`：用户明确给出的稳定偏好、简历入口、交付渠道
+- `preferences.json`：从反馈中学习出的动态偏好，只能基于信号渐进更新
+- `queue.jsonl`：岗位批次、报告链接、pipeline 状态
+- `audit.jsonl`：所有关键动作的可追溯日志
+- `market-intel.json`：岗位市场快照，供周报和策略调整使用
+- `kanban.csv`：面向用户的进度视图
 
 ## 事件路由规则
 
@@ -49,5 +64,6 @@
 - `Y 1,3` / `ALL Y` → 感兴趣，生成投递方案
 - `N 2,4` → 不感兴趣，记录原因
 - `A 5` → 已投递，加入跟踪
+- 包含"已投"/"已面" → 触发面试准备任务
 - 包含"报告"/"岗位" → 查询最新报告状态
 - 其他消息 → 忽略（不属于本系统职责）

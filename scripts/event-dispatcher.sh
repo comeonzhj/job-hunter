@@ -25,7 +25,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$SCRIPT_DIR/env.sh"
+if [ -n "${JOB_HOME:-}" ] && [ -f "$JOB_HOME/scripts/env.sh" ]; then
+  source "$JOB_HOME/scripts/env.sh"
+elif [ -f "$SCRIPT_DIR/env.sh" ]; then
+  source "$SCRIPT_DIR/env.sh"
+else
+  source "$HOME/.hermes/job-hunter/scripts/env.sh"
+fi
 
 EVENTS_DIR="$JOB_WORKSPACE/events"
 PROCESSED_DIR="$JOB_WORKSPACE/events/.processed"
@@ -82,15 +88,15 @@ for f in "${NEW_EVENTS[@]}"; do
   # 路由判断
   if echo "$CONTENT" | grep -qE '^(y|n|a|yes|no)\s+[0-9]'; then
     # 反馈标记: "Y 1,3" / "N 2" / "A 5"
-    FEEDBACK_EVENTS+=("$f")
+    FEEDBACK_EVENTS+=("$EVENT")
   elif echo "$CONTENT" | grep -qE '报告|岗位|投递|简历|面试|看了|反馈'; then
     # 报告相关询问
-    REPORT_QUERY_EVENTS+=("$f")
+    REPORT_QUERY_EVENTS+=("$EVENT")
   elif echo "$CONTENT" | grep -qE '全部|all\s*y|all\s*n'; then
     # 全部标记
-    FEEDBACK_EVENTS+=("$f")
+    FEEDBACK_EVENTS+=("$EVENT")
   else
-    GENERAL_EVENTS+=("$f")
+    GENERAL_EVENTS+=("$EVENT")
   fi
   
   # 移动到已处理目录
@@ -106,9 +112,9 @@ if [ ${#FEEDBACK_EVENTS[@]} -gt 0 ]; then
   HAS_ACTION=true
   INSTRUCTION+="📋 收到 ${#FEEDBACK_EVENTS[@]} 条用户反馈:\n\n"
   
-  for f in "${FEEDBACK_EVENTS[@]}"; do
-    CONTENT=$(jq -r '.content' "$f")
-    SENDER=$(jq -r '.sender_id' "$f")
+  for event in "${FEEDBACK_EVENTS[@]}"; do
+    CONTENT=$(echo "$event" | jq -r '.content')
+    SENDER=$(echo "$event" | jq -r '.sender_id')
     INSTRUCTION+="  来自 $SENDER: $CONTENT\n"
   done
   
@@ -116,8 +122,9 @@ if [ ${#FEEDBACK_EVENTS[@]} -gt 0 ]; then
   INSTRUCTION+="1. 加载 skill: job-hunter-feedback\n"
   INSTRUCTION+="2. 解析反馈标记（Y=感兴趣, N=不感兴趣, A=已投递）\n"
   INSTRUCTION+="3. 对 Y 标记的岗位生成投递方案\n"
-  INSTRUCTION+="4. 更新 queue.jsonl 和 preferences.json\n"
-  INSTRUCTION+="5. 通过飞书消息回复用户确认\n\n"
+  INSTRUCTION+="4. 对 A 标记的岗位设置 pipeline_status=applied，并运行 $JOB_SCRIPTS/06-interview-prep.sh\n"
+  INSTRUCTION+="5. 更新 queue.jsonl、preferences.json，并运行 $JOB_SCRIPTS/09-kanban-sync.sh\n"
+  INSTRUCTION+="6. 通过飞书消息回复用户确认\n\n"
 fi
 
 # 处理报告查询事件
@@ -125,8 +132,8 @@ if [ ${#REPORT_QUERY_EVENTS[@]} -gt 0 ]; then
   HAS_ACTION=true
   INSTRUCTION+="💬 用户询问报告/岗位信息 (${#REPORT_QUERY_EVENTS[@]} 条):\n\n"
   
-  for f in "${REPORT_QUERY_EVENTS[@]}"; do
-    CONTENT=$(jq -r '.content' "$f")
+  for event in "${REPORT_QUERY_EVENTS[@]}"; do
+    CONTENT=$(echo "$event" | jq -r '.content')
     INSTRUCTION+="  消息: $CONTENT\n"
   done
   

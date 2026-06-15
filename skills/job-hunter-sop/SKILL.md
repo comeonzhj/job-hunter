@@ -36,7 +36,13 @@ cat $JOB_CONFIG
 # 3. 读取偏好模型（如有）
 cat $JOB_PREFERENCES 2>/dev/null || echo "无偏好模型，使用初始配置"
 
-# 4. 读取待处理队列
+# 4. 读取简历参考（如有）
+RESUME_PATH=$(jq -r '.user.resume.path // ""' "$JOB_CONFIG")
+RESUME_SUMMARY=$(jq -r '.user.resume.summary // ""' "$JOB_CONFIG")
+[ -n "$RESUME_PATH" ] && [ -f "$RESUME_PATH" ] && sed -n '1,220p' "$RESUME_PATH"
+[ -z "$RESUME_PATH" ] && [ -n "$RESUME_SUMMARY" ] && echo "$RESUME_SUMMARY"
+
+# 5. 读取待处理队列
 jq -c 'select(.status == "pending")' $JOB_QUEUE
 ```
 
@@ -45,7 +51,7 @@ jq -c 'select(.status == "pending")' $JOB_QUEUE
 对队列中每个岗位调用 `boss detail`：
 
 ```bash
-boss detail <security_id> --format json
+boss --platform <platform> --json detail <security_id>
 ```
 
 **关键字段**：职位名称、薪资、地点、公司名称/规模/融资阶段、JD 全文、福利列表、招聘者信息。
@@ -56,7 +62,7 @@ boss detail <security_id> --format json
 
 | 维度 | 权重 | 评分要点 |
 |------|------|---------|
-| 技能匹配 | 30% | JD 技术栈与求职者技能的重合度。读取 `preferences.json` 中的 `preferred_skills` 加权 |
+| 技能匹配 | 30% | JD 技术栈与求职者简历、配置技能、`preferences.json` 中 `preferred_skills` 的重合度 |
 | 薪资匹配 | 20% | 是否在期望范围。参考 `preferences.json` 中的 `salary_preference` |
 | 地域匹配 | 15% | 是否在目标城市或可接受远程 |
 | 公司质量 | 15% | 融资阶段、规模、行业口碑 |
@@ -71,13 +77,19 @@ boss detail <security_id> --format json
 
 ## Step 3: 生成投递报告
 
-按 `$JOB_SCRIPTS/feishu-delivery.md` 中的文档模板生成报告。
+按 `job-hunter-delivery` Skill 中的文档模板生成报告。
 
 报告必须包含：
 1. 概览区（callout 高亮关键数字）
 2. 分级展示（强烈推荐 → 建议 → 可考虑 → 不推荐）
 3. 每个推荐岗位的理由、简历优化点、投递话术
 4. **可交互反馈区**（checkbox + 评论引导）
+
+如果用户没有提供简历，报告开头必须加入轻量提示：
+
+```markdown
+我还没有你的简历参考。本轮按配置和 JD 做初筛；提供简历后，我可以把匹配理由、风险点和简历优化建议做得更准。
+```
 
 ## Step 4: 交付飞书文档
 
@@ -117,6 +129,7 @@ jq -cn --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg type "report_generated" -
 ## Verification Checklist
 
 - [ ] 已读取 `preferences.json` 并应用到评分
+- [ ] 已读取简历参考；如未提供，报告中已提示用户补充
 - [ ] 报告包含可交互 checkbox 反馈区
 - [ ] 文档已创建且 doc_token 已记录到队列
 - [ ] 飞书消息通知已发送

@@ -5,7 +5,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$SCRIPT_DIR/env.sh"
+if [ -n "${JOB_HOME:-}" ] && [ -f "$JOB_HOME/scripts/env.sh" ]; then
+  source "$JOB_HOME/scripts/env.sh"
+elif [ -f "$SCRIPT_DIR/env.sh" ]; then
+  source "$SCRIPT_DIR/env.sh"
+else
+  source "$HOME/.hermes/job-hunter/scripts/env.sh"
+fi
 
 # 读取搜索结果
 if [ -t 0 ]; then
@@ -26,8 +32,7 @@ if [ -s "$JOB_SEEN" ]; then
   SEEN_IDS=$(jq -s '[.[].security_id]' "$JOB_SEEN")
 fi
 
-NEW_JOBS=$(echo "$ALL_JOBS" "$SEEN_IDS" | jq '
-  .[0] as $jobs | .[1] as $seen |
+NEW_JOBS=$(jq -n --argjson jobs "$ALL_JOBS" --argjson seen "$SEEN_IDS" '
   [$jobs[] | select(.security_id as $sid | $seen | index($sid) | not)]
 ')
 
@@ -38,12 +43,15 @@ if [ "$NEW_COUNT" -eq 0 ]; then
   exit 0
 fi
 
-echo "$NEW_JOBS" | jq -c '.[]' >> "$JOB_SEEN"
-
 BATCH_ID="batch_$(date +%Y%m%d_%H%M%S)"
-QUEUE_ENTRY=$(jq -n \
+OBSERVED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+echo "$NEW_JOBS" | jq -c --arg observed_at "$OBSERVED_AT" --arg batch_id "$BATCH_ID" \
+  '.[] | . + {observed_at: $observed_at, batch_id: $batch_id}' >> "$JOB_SEEN"
+
+QUEUE_ENTRY=$(jq -cn \
   --arg batch_id "$BATCH_ID" \
-  --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --arg timestamp "$OBSERVED_AT" \
   --argjson jobs "$NEW_JOBS" \
   '{
     batch_id: $batch_id,

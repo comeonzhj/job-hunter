@@ -2,6 +2,8 @@
   "version": 1,
   "last_updated": "",
   "signals_received": 0,
+  "recent_positive_signals": [],
+  "recent_negative_signals": [],
   "learned_preferences": {},
   "learned_exclusions": {},
   "scoring_adjustments": {

@@ -6,6 +6,10 @@ workspace/event-listener.log
 workspace/reports/
 workspace/archives/
 workspace/preferences.json
+workspace/demo/
+workspace/kanban.csv
+workspace/market-intel.json
+docs/
 
 # OS
 .DS_Store
@@ -15,3 +19,5 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+session/

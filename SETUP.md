@@ -48,7 +48,7 @@ command -v lark-cli  # 飞书 CLI
 
 ---
 
-### Step 2: 引导用户填写配置
+### Step 2: 引导用户填写配置和简历
 
 读取当前配置：
 
@@ -63,6 +63,14 @@ cat $JOB_HOME/config.json
 3. **期望薪资范围**：最低和最高（单位 K）
 4. **核心福利要求**：如 "双休", "五险一金"
 5. **排除关键词**：不想看到的岗位特征（如 "外包", "驻场"）
+6. **简历参考**：是否提供本地简历文件路径，或直接提供简历摘要？
+
+简历不是必填项，但强烈建议提供。系统会用它做三件事：
+- 过滤明显不匹配的 JD，减少噪音
+- 生成更准确的匹配理由和风险提示
+- 在报告中给出针对岗位的简历优化点
+
+如果用户提供本地简历路径，先确认文件存在，再把路径写入 `user.resume.path`。如果用户只提供文字摘要，把摘要写入 `user.resume.summary`，并提取技能关键词写入 `user.resume.skills`。
 
 用户回复后，更新配置文件：
 
@@ -78,18 +86,18 @@ cat $JOB_HOME/config.json
 检查登录状态：
 
 ```bash
-boss status --format json
+boss --platform "$(jq -r '.user.platform // "zhilian"' "$JOB_HOME/config.json")" --json status
 ```
 
 如果 `ok == false`，告知用户：
 
-> 请在终端运行 `boss login`，按提示扫码登录 Boss 直聘。
+> 请在终端运行 `boss --platform zhilian login`，按提示扫码登录智联招聘。
 > 登录成功后告诉我。
 
 用户确认后验证：
 
 ```bash
-boss status --format json  # 确认 ok == true
+boss --platform zhilian --json status  # 确认 ok == true
 ```
 
 ---
@@ -111,6 +119,8 @@ cat > $JOB_HOME/workspace/preferences.json << 'EOF'
   "version": 1,
   "last_updated": "",
   "signals_received": 0,
+  "recent_positive_signals": [],
+  "recent_negative_signals": [],
   "learned_preferences": {},
   "learned_exclusions": {},
   "scoring_adjustments": {
@@ -178,9 +188,17 @@ cp $JOB_HOME/scripts/event-dispatcher.sh ~/.hermes/scripts/job-hunter-event-disp
 chmod +x ~/.hermes/scripts/job-hunter-*.sh
 ```
 
+复制后的脚本依赖 `JOB_HOME` 回到真实项目目录。若用户使用自定义安装路径，创建 cron job 时必须在环境或脚本配置中传入：
+
+```bash
+export JOB_HOME="/用户自定义/job-hunter"
+```
+
 ---
 
 ### Step 8: 创建定时任务
+
+只有用户明确要求启用长期任务时才创建 cron job。测评、演示或 Review 阶段不要主动创建。
 
 创建两个 cron job：
 
@@ -230,6 +248,14 @@ cat $JOB_HOME/workspace/audit.jsonl | jq .
 
 ```
 cronjob(action='list')
+```
+
+可选验证进阶功能：
+
+```bash
+bash $JOB_HOME/scripts/04-market-intel.sh
+bash $JOB_HOME/scripts/05-weekly-report.sh
+bash $JOB_HOME/scripts/09-kanban-sync.sh
 ```
 
 ---

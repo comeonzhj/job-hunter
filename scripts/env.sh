@@ -13,7 +13,7 @@ export JOB_HOME="${JOB_HOME:-$HOME/.hermes/job-hunter}"
 # 子目录
 export JOB_SCRIPTS="$JOB_HOME/scripts"
 export JOB_WORKSPACE="$JOB_HOME/workspace"
-export JOB_CONFIG="$JOB_HOME/config.json"
+export JOB_CONFIG="${JOB_CONFIG:-$JOB_HOME/config.json}"
 
 # 工作空间文件
 export JOB_QUEUE="$JOB_WORKSPACE/queue.jsonl"

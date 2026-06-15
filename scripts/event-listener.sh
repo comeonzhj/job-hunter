@@ -23,7 +23,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$SCRIPT_DIR/env.sh"
+if [ -n "${JOB_HOME:-}" ] && [ -f "$JOB_HOME/scripts/env.sh" ]; then
+  source "$JOB_HOME/scripts/env.sh"
+elif [ -f "$SCRIPT_DIR/env.sh" ]; then
+  source "$SCRIPT_DIR/env.sh"
+else
+  source "$HOME/.hermes/job-hunter/scripts/env.sh"
+fi
 
 EVENTS_DIR="$JOB_WORKSPACE/events"
 PROCESSED_DIR="$JOB_WORKSPACE/events/.processed"
@@ -46,22 +52,28 @@ case "${1:-start}" in
     echo "   日志文件: $LOG_FILE"
     echo ""
 
-    # 启动事件订阅（后台运行）
-    cd "$EVENTS_DIR"
-    nohup lark-cli event +subscribe \
-      --event-types "im.message.receive_v1,im.message.reaction.created_v1" \
-      --compact \
-      --jq '{
-        event_type: .event_type,
-        timestamp: (now | strftime("%Y-%m-%dT%H:%M:%SZ")),
-        chat_id: .event.chat_id,
-        sender_id: .event.sender_id,
-        message_id: .event.message_id,
-        message_type: .event.message_type,
-        content: (if .event.message_type == "text" then (.event.content | fromjson | .text // .content // "") else .event.content end),
-        reaction_type: .event.reaction_type
-      }' \
-      >> "$LOG_FILE" 2>&1 &
+    # 启动事件订阅（后台运行），每行事件落成一个 JSON 文件供 dispatcher 消费。
+    nohup bash -c '
+      set -euo pipefail
+      lark-cli event +subscribe \
+        --event-types "im.message.receive_v1,im.message.reaction.created_v1" \
+        --compact \
+        --jq '"'"'{
+          event_type: .event_type,
+          timestamp: (now | strftime("%Y-%m-%dT%H:%M:%SZ")),
+          chat_id: .event.chat_id,
+          sender_id: .event.sender_id,
+          message_id: .event.message_id,
+          message_type: .event.message_type,
+          content: (if .event.message_type == "text" then (.event.content | fromjson | .text // .content // "") else .event.content end),
+          reaction_type: .event.reaction_type
+        }'"'"' \
+      | while IFS= read -r event_line; do
+          [ -n "$event_line" ] || continue
+          event_file="'"$EVENTS_DIR"'/event_$(date +%s)_$RANDOM.json"
+          printf "%s\n" "$event_line" > "$event_file"
+        done
+    ' >> "$LOG_FILE" 2>&1 &
     
     LISTENER_PID=$!
     echo "$LISTENER_PID" > "$PID_FILE"

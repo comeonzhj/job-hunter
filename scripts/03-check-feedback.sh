@@ -10,7 +10,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$SCRIPT_DIR/env.sh"
+if [ -n "${JOB_HOME:-}" ] && [ -f "$JOB_HOME/scripts/env.sh" ]; then
+  source "$JOB_HOME/scripts/env.sh"
+elif [ -f "$SCRIPT_DIR/env.sh" ]; then
+  source "$SCRIPT_DIR/env.sh"
+else
+  source "$HOME/.hermes/job-hunter/scripts/env.sh"
+fi
 
 log_event() {
   jq -cn \
@@ -91,16 +97,14 @@ while IFS= read -r batch; do
   fi
   
   # 检测变化
-  NEWLY_CHECKED=$(echo "$CURRENT_CHECKBOXES" "$PREV_CHECKBOXES" | jq '
-    .[0] as $curr | .[1] as $prev |
+  NEWLY_CHECKED=$(jq -n --argjson curr "$CURRENT_CHECKBOXES" --argjson prev "$PREV_CHECKBOXES" '
     [$curr[] | select(.checked == true) | .index] as $c |
     [$prev[] | select(.checked == true) | .index] as $p |
     [$c[] | select(. as $i | $p | index($i) | not)]
   ')
   
   PREV_COMMENT_IDS=$(echo "$PREV_COMMENTS" | jq '[.[].id]')
-  NEW_COMMENTS=$(echo "$CURRENT_COMMENTS" "$PREV_COMMENT_IDS" | jq '
-    .[0] as $curr | .[1] as $prev_ids |
+  NEW_COMMENTS=$(jq -n --argjson curr "$CURRENT_COMMENTS" --argjson prev_ids "$PREV_COMMENT_IDS" '
     [$curr[] | select(.id as $id | $prev_ids | index($id) | not)]
   ')
   
@@ -123,7 +127,7 @@ while IFS= read -r batch; do
         has_activity: true
       }')
     
-    ALL_EVENTS=$(echo "$ALL_EVENTS" "$EVENT" | jq '.[0] + [.[1]]')
+    ALL_EVENTS=$(jq -n --argjson events "$ALL_EVENTS" --argjson event "$EVENT" '$events + [$event]')
     log_event "doc_activity" "batch=$BATCH_ID checked=$CHECKED_COUNT comments=$COMMENT_COUNT"
   fi
   
